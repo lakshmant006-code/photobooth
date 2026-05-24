@@ -1,6 +1,6 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/photobooth_local/index.html" },
-    { "source": "/(.*)", "destination": "/photobooth_local/$1" }
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/photobooth_local/$1" }
   ]
 }

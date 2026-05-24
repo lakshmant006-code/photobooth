@@ -157,6 +157,57 @@
   .rbtn.walgreens:active { background: #b8000a; }
   .rbtn.walgreens svg { stroke: #fff; }
 
+  /* ── Print modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--panel); border-radius: 24px 24px 0 0;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+    padding: 24px 20px calc(env(safe-area-inset-bottom) + 28px);
+    border-top: 1px solid var(--line);
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--line); border-radius: 99px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  .modal-sub { font-size: 13px; color: var(--dim2); margin: 0 0 20px; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: var(--panel2); border: none; color: var(--ink); width: 32px; height: 32px; border-radius: 99px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .store-card { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
+  .store-card .store-name { font-weight: 700; font-size: 15px; margin: 0 0 4px; }
+  .store-card .store-addr { font-size: 13px; color: var(--dim2); margin: 0 0 4px; }
+  .store-card .store-dist { font-size: 12px; color: var(--ok); font-weight: 600; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim2); margin-bottom: 6px; }
+  .field input {
+    width: 100%; min-height: 48px; background: var(--panel2); border: 1.5px solid var(--line);
+    border-radius: 12px; color: var(--ink); font-family: inherit; font-size: 16px; padding: 0 14px;
+    transition: border-color .15s;
+  }
+  .field input:focus { outline: none; border-color: var(--dim2); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .size-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim2); margin: 4px 0 10px; }
+  .size-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .size-pill { min-height: 52px; border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--panel2); color: var(--ink); font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: .15s; }
+  .size-pill[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .size-pill .hint { font-size: 11px; opacity: .6; }
+
+  .wag-submit { width: 100%; min-height: 60px; border: none; border-radius: var(--radius); background: #e3000b; color: #fff; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity .15s, transform .1s; letter-spacing: .04em; }
+  .wag-submit:disabled { opacity: .4; cursor: default; }
+  .wag-submit:active:not(:disabled) { opacity: .85; transform: scale(0.98); }
+
+  .print-step { display: none; }
+  .print-step.active { display: block; }
+  .step-center { text-align: center; padding: 32px 0; }
+  .step-center .big-icon { font-size: 48px; margin-bottom: 12px; }
+  .step-center h3 { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+  .step-center p { color: var(--dim2); font-size: 14px; margin: 0; line-height: 1.6; }
+  .step-spinner { width: 36px; height: 36px; border: 3px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+
   footer { margin-top: 40px; text-align: center; color: var(--dim); font-size: 11px; letter-spacing: .05em; line-height: 1.8; }
 </style>
 </head>
@@ -225,6 +276,63 @@
   <div id="status" class="status" role="status" aria-live="polite"></div>
   <footer>Runs entirely on your device &middot; No AI face changes &middot; No uploads</footer>
 </main>
+
+<!-- ── Walgreens Print Modal ── -->
+<div id="printModal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Print at Walgreens">
+  <div class="modal-box" style="position:relative">
+    <div class="modal-handle"></div>
+    <button class="modal-close" id="printModalClose" aria-label="Close">&times;</button>
+
+    <!-- Step 1: finding store -->
+    <div id="printStep1" class="print-step active">
+      <div class="step-center">
+        <div class="step-spinner"></div>
+        <h3>Finding your nearest Walgreens</h3>
+        <p>Allow location access when prompted</p>
+      </div>
+    </div>
+
+    <!-- Step 2: store + form -->
+    <div id="printStep2" class="print-step">
+      <p class="modal-title">Print at Walgreens</p>
+      <p class="modal-sub">Ready for 1-hour pickup</p>
+      <div id="storeCard" class="store-card"></div>
+
+      <div class="field-row">
+        <div class="field"><label>First name</label><input id="wFirstName" type="text" autocomplete="given-name" placeholder="Jane"></div>
+        <div class="field"><label>Last name</label><input id="wLastName" type="text" autocomplete="family-name" placeholder="Smith"></div>
+      </div>
+      <div class="field"><label>Phone</label><input id="wPhone" type="tel" autocomplete="tel" placeholder="555-555-5555"></div>
+      <div class="field"><label>Email</label><input id="wEmail" type="email" autocomplete="email" placeholder="jane@email.com"></div>
+
+      <p class="size-label">Print size</p>
+      <div class="size-pills" id="sizePills">
+        <button class="size-pill" data-size="4R" data-code="PRTPHOTO4R" aria-pressed="true">4 × 6 <span class="hint">standard</span></button>
+        <button class="size-pill" data-size="5R" data-code="PRTPHOTO5R" aria-pressed="false">5 × 7 <span class="hint">large</span></button>
+      </div>
+
+      <button id="wagSubmit" class="wag-submit" type="button">Place Order</button>
+    </div>
+
+    <!-- Step 3: uploading / placing order -->
+    <div id="printStep3" class="print-step">
+      <div class="step-center">
+        <div class="step-spinner"></div>
+        <h3 id="printStep3Label">Uploading photo…</h3>
+        <p>This takes just a moment</p>
+      </div>
+    </div>
+
+    <!-- Step 4: success -->
+    <div id="printStep4" class="print-step">
+      <div class="step-center">
+        <div class="big-icon">✅</div>
+        <h3>Order placed!</h3>
+        <p id="confirmText"></p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="actionbar"><div class="actionbar-inner">
   <button id="generate" class="generate" disabled>Generate</button>
@@ -607,36 +715,130 @@ shareBtn.addEventListener("click", async () => {
     document.body.appendChild(a); a.click(); a.remove();
   }
 });
-const walgreensBtn = $("walgreensBtn");
-walgreensBtn.addEventListener("click", async () => {
-  walgreensBtn.disabled = true;
-  walgreensBtn.textContent = "Finding nearest store…";
+// ── Walgreens Print Modal ─────────────────────────────────────────────────
+const walgreensBtn   = $("walgreensBtn");
+const printModal     = $("printModal");
+const printModalClose = $("printModalClose");
+const wagSubmit      = $("wagSubmit");
+const sizePills      = $("sizePills");
+
+let selectedStore = null;
+let selectedSize  = { size: "4R", code: "PRTPHOTO4R" };
+
+function showPrintStep(n) {
+  ["printStep1","printStep2","printStep3","printStep4"].forEach((id, i) => {
+    $(id).classList.toggle("active", i + 1 === n);
+  });
+}
+
+function openModal() {
+  printModal.classList.add("open");
+  showPrintStep(1);
+  selectedStore = null;
+  startStoreSearch();
+}
+function closeModal() { printModal.classList.remove("open"); }
+
+walgreensBtn.addEventListener("click", openModal);
+printModalClose.addEventListener("click", closeModal);
+printModal.addEventListener("click", (e) => { if (e.target === printModal) closeModal(); });
+
+// Size pill toggle
+sizePills.addEventListener("click", (e) => {
+  const btn = e.target.closest(".size-pill");
+  if (!btn) return;
+  [...sizePills.children].forEach(p => p.setAttribute("aria-pressed", p === btn ? "true" : "false"));
+  selectedSize = { size: btn.dataset.size, code: btn.dataset.code };
+});
+
+async function startStoreSearch() {
   try {
     const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
     );
     const { latitude: lat, longitude: lng } = pos.coords;
-    // Save strip to Photos first so user can upload it
-    if (resultBlob) {
-      const file = new File([resultBlob], "photobooth.jpg", { type: "image/jpeg" });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Photobooth strip for Walgreens" });
-      }
+    const r = await fetch(`/api/wag?action=store&lat=${lat}&lng=${lng}`);
+    if (!r.ok) {
+      const err = await r.json();
+      throw new Error(err.error || "Store lookup failed");
     }
-    // Open Walgreens photo upload pre-filled with nearest store search
-    const url = `https://photo.walgreens.com/store/prints?lat=${lat}&lng=${lng}`;
-    window.open(url, "_blank");
+    const data = await r.json();
+    const stores = data.locations || data.stores || [];
+    if (!stores.length) throw new Error("No Walgreens found nearby");
+    selectedStore = stores[0];
+
+    const card = $("storeCard");
+    card.innerHTML = `
+      <p class="store-name">${selectedStore.name || "Walgreens"}</p>
+      <p class="store-addr">${selectedStore.address || ""} ${selectedStore.city || ""}, ${selectedStore.state || ""}</p>
+      <p class="store-dist">${selectedStore.distance ? selectedStore.distance + " mi away" : "Nearest store"}</p>`;
+    showPrintStep(2);
   } catch (e) {
-    if (e.code === 1) {
-      status.className = "status error";
-      status.textContent = "Location access denied — please allow location and try again.";
-    } else {
-      // Fallback: open Walgreens photo without location
-      window.open("https://photo.walgreens.com/store/prints", "_blank");
-    }
+    closeModal();
+    status.className = "status error";
+    status.textContent = e.message.includes("denied")
+      ? "Location access denied — enable it in Settings and try again."
+      : "Could not find a nearby Walgreens: " + e.message;
+  }
+}
+
+wagSubmit.addEventListener("click", async () => {
+  const firstName = $("wFirstName").value.trim();
+  const lastName  = $("wLastName").value.trim();
+  const phone     = $("wPhone").value.trim();
+  const email     = $("wEmail").value.trim();
+  if (!firstName || !lastName || !phone || !email) {
+    alert("Please fill in all fields."); return;
+  }
+  if (!resultBlob) return;
+
+  wagSubmit.disabled = true;
+  showPrintStep(3);
+
+  try {
+    // 1. Upload photo
+    $("printStep3Label").textContent = "Uploading photo…";
+    const imageData = await new Promise((res) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result.split(",")[1]);
+      reader.readAsDataURL(resultBlob);
+    });
+    const uploadRes = await fetch("/api/wag?action=upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageData })
+    });
+    const upload = await uploadRes.json();
+    if (!uploadRes.ok) throw new Error(upload.error || "Upload failed");
+
+    // 2. Place order
+    $("printStep3Label").textContent = "Placing order…";
+    const orderRes = await fetch("/api/wag?action=order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName, lastName, phone, email,
+        storeNum: selectedStore.storeNumber || selectedStore.num || selectedStore.id,
+        productDetails: [{
+          productCode: selectedSize.code,
+          quantity: 1,
+          imageKeys: [upload.photoKey]
+        }]
+      })
+    });
+    const order = await orderRes.json();
+    if (!orderRes.ok) throw new Error(order.error || "Order failed");
+
+    const pickup = order.promiseTime || order.pickupTime || "about 1 hour";
+    $("confirmText").innerHTML =
+      `Your strip will be ready at<br><strong>${selectedStore.name || "Walgreens"}</strong><br>in ${pickup}.`;
+    showPrintStep(4);
+  } catch (e) {
+    closeModal();
+    status.className = "status error";
+    status.textContent = "Print order failed: " + e.message;
   } finally {
-    walgreensBtn.disabled = false;
-    walgreensBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg> Print at Nearest Walgreens`;
+    wagSubmit.disabled = false;
   }
 });
 
