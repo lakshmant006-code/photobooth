@@ -283,52 +283,40 @@
     <div class="modal-handle"></div>
     <button class="modal-close" id="printModalClose" aria-label="Close">&times;</button>
 
-    <!-- Step 1: finding store -->
+    <!-- Step 1: getting location -->
     <div id="printStep1" class="print-step active">
       <div class="step-center">
         <div class="step-spinner"></div>
-        <h3>Finding your nearest Walgreens</h3>
+        <h3>Getting your location…</h3>
         <p>Allow location access when prompted</p>
       </div>
     </div>
 
-    <!-- Step 2: store + form -->
+    <!-- Step 2: saving photo -->
     <div id="printStep2" class="print-step">
-      <p class="modal-title">Print at Walgreens</p>
-      <p class="modal-sub">Ready for 1-hour pickup</p>
-      <div id="storeCard" class="store-card"></div>
-
-      <div class="field-row">
-        <div class="field"><label>First name</label><input id="wFirstName" type="text" autocomplete="given-name" placeholder="Jane"></div>
-        <div class="field"><label>Last name</label><input id="wLastName" type="text" autocomplete="family-name" placeholder="Smith"></div>
+      <div class="step-center">
+        <div class="step-spinner"></div>
+        <h3>Save your strip</h3>
+        <p>Tap <strong>Save Image</strong> in the share sheet,<br>then we'll open Walgreens Photo for you</p>
       </div>
-      <div class="field"><label>Phone</label><input id="wPhone" type="tel" autocomplete="tel" placeholder="555-555-5555"></div>
-      <div class="field"><label>Email</label><input id="wEmail" type="email" autocomplete="email" placeholder="jane@email.com"></div>
-
-      <p class="size-label">Print size</p>
-      <div class="size-pills" id="sizePills">
-        <button class="size-pill" data-size="4R" data-code="PRTPHOTO4R" aria-pressed="true">4 × 6 <span class="hint">standard</span></button>
-        <button class="size-pill" data-size="5R" data-code="PRTPHOTO5R" aria-pressed="false">5 × 7 <span class="hint">large</span></button>
-      </div>
-
-      <button id="wagSubmit" class="wag-submit" type="button">Place Order</button>
     </div>
 
-    <!-- Step 3: uploading / placing order -->
+    <!-- Step 3: opening Walgreens -->
     <div id="printStep3" class="print-step">
       <div class="step-center">
         <div class="step-spinner"></div>
-        <h3 id="printStep3Label">Uploading photo…</h3>
-        <p>This takes just a moment</p>
+        <h3>Opening Walgreens Photo…</h3>
+        <p>Your nearest store is pre-selected</p>
       </div>
     </div>
 
-    <!-- Step 4: success -->
+    <!-- Step 4: done -->
     <div id="printStep4" class="print-step">
       <div class="step-center">
         <div class="big-icon">✅</div>
-        <h3>Order placed!</h3>
-        <p id="confirmText"></p>
+        <h3>You're all set!</h3>
+        <p>Upload your saved strip on the Walgreens Photo page — ready in about 1 hour.</p>
+        <button onclick="closeModal()" style="margin-top:20px;background:var(--ink);color:var(--bg);border:none;border-radius:12px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;">Done</button>
       </div>
     </div>
   </div>
