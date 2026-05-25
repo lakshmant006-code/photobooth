@@ -716,131 +716,52 @@ shareBtn.addEventListener("click", async () => {
   }
 });
 // ── Walgreens Print Modal ─────────────────────────────────────────────────
-const walgreensBtn   = $("walgreensBtn");
-const printModal     = $("printModal");
+const walgreensBtn    = $("walgreensBtn");
+const printModal      = $("printModal");
 const printModalClose = $("printModalClose");
-const wagSubmit      = $("wagSubmit");
-const sizePills      = $("sizePills");
-
-let selectedStore = null;
-let selectedSize  = { size: "4R", code: "PRTPHOTO4R" };
 
 function showPrintStep(n) {
   ["printStep1","printStep2","printStep3","printStep4"].forEach((id, i) => {
     $(id).classList.toggle("active", i + 1 === n);
   });
 }
-
-function openModal() {
-  printModal.classList.add("open");
-  showPrintStep(1);
-  selectedStore = null;
-  startStoreSearch();
-}
+function openModal()  { printModal.classList.add("open"); showPrintStep(1); doSaveAndOpen(); }
 function closeModal() { printModal.classList.remove("open"); }
 
 walgreensBtn.addEventListener("click", openModal);
 printModalClose.addEventListener("click", closeModal);
 printModal.addEventListener("click", (e) => { if (e.target === printModal) closeModal(); });
 
-// Size pill toggle
-sizePills.addEventListener("click", (e) => {
-  const btn = e.target.closest(".size-pill");
-  if (!btn) return;
-  [...sizePills.children].forEach(p => p.setAttribute("aria-pressed", p === btn ? "true" : "false"));
-  selectedSize = { size: btn.dataset.size, code: btn.dataset.code };
-});
-
-async function startStoreSearch() {
+async function doSaveAndOpen() {
+  if (!resultBlob) return;
   try {
-    const pos = await new Promise((res, rej) =>
-      navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
-    );
-    const { latitude: lat, longitude: lng } = pos.coords;
-    const r = await fetch(`/api/wag?action=store&lat=${lat}&lng=${lng}`);
-    if (!r.ok) {
-      const err = await r.json();
-      throw new Error(err.error || "Store lookup failed");
-    }
-    const data = await r.json();
-    const stores = data.locations || data.stores || [];
-    if (!stores.length) throw new Error("No Walgreens found nearby");
-    selectedStore = stores[0];
+    // Step 1 — get location for the store finder URL
+    let lat = null, lng = null;
+    try {
+      const pos = await new Promise((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 })
+      );
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch (_) {}
 
-    const card = $("storeCard");
-    card.innerHTML = `
-      <p class="store-name">${selectedStore.name || "Walgreens"}</p>
-      <p class="store-addr">${selectedStore.address || ""} ${selectedStore.city || ""}, ${selectedStore.state || ""}</p>
-      <p class="store-dist">${selectedStore.distance ? selectedStore.distance + " mi away" : "Nearest store"}</p>`;
+    // Step 2 — save photo to camera roll
     showPrintStep(2);
+    const file = new File([resultBlob], "photobooth.jpg", { type: "image/jpeg" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Photobooth strip" });
+    }
+
+    // Step 3 — open Walgreens Photo with location pre-filled
+    showPrintStep(3);
+    const wagUrl = lat
+      ? `https://photo.walgreens.com/store/prints?sourcelat=${lat}&sourcelng=${lng}`
+      : "https://photo.walgreens.com/store/prints";
+    setTimeout(() => { window.open(wagUrl, "_blank"); showPrintStep(4); }, 800);
   } catch (e) {
     closeModal();
-    status.className = "status error";
-    status.textContent = e.message.includes("denied")
-      ? "Location access denied — enable it in Settings and try again."
-      : "Could not find a nearby Walgreens: " + e.message;
   }
 }
-
-wagSubmit.addEventListener("click", async () => {
-  const firstName = $("wFirstName").value.trim();
-  const lastName  = $("wLastName").value.trim();
-  const phone     = $("wPhone").value.trim();
-  const email     = $("wEmail").value.trim();
-  if (!firstName || !lastName || !phone || !email) {
-    alert("Please fill in all fields."); return;
-  }
-  if (!resultBlob) return;
-
-  wagSubmit.disabled = true;
-  showPrintStep(3);
-
-  try {
-    // 1. Upload photo
-    $("printStep3Label").textContent = "Uploading photo…";
-    const imageData = await new Promise((res) => {
-      const reader = new FileReader();
-      reader.onload = () => res(reader.result.split(",")[1]);
-      reader.readAsDataURL(resultBlob);
-    });
-    const uploadRes = await fetch("/api/wag?action=upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageData })
-    });
-    const upload = await uploadRes.json();
-    if (!uploadRes.ok) throw new Error(upload.error || "Upload failed");
-
-    // 2. Place order
-    $("printStep3Label").textContent = "Placing order…";
-    const orderRes = await fetch("/api/wag?action=order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        firstName, lastName, phone, email,
-        storeNum: selectedStore.storeNumber || selectedStore.num || selectedStore.id,
-        productDetails: [{
-          productCode: selectedSize.code,
-          quantity: 1,
-          imageKeys: [upload.photoKey]
-        }]
-      })
-    });
-    const order = await orderRes.json();
-    if (!orderRes.ok) throw new Error(order.error || "Order failed");
-
-    const pickup = order.promiseTime || order.pickupTime || "about 1 hour";
-    $("confirmText").innerHTML =
-      `Your strip will be ready at<br><strong>${selectedStore.name || "Walgreens"}</strong><br>in ${pickup}.`;
-    showPrintStep(4);
-  } catch (e) {
-    closeModal();
-    status.className = "status error";
-    status.textContent = "Print order failed: " + e.message;
-  } finally {
-    wagSubmit.disabled = false;
-  }
-});
 
 againBtn.addEventListener("click", () => {
   queue.forEach((i) => URL.revokeObjectURL(i.url)); queue = [];
