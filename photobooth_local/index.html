@@ -535,7 +535,7 @@ function coverCrop(srcCanvas, tw, th) {
   const sr = srcCanvas.width / srcCanvas.height, dr = tw / th;
   let dw, dh;
   if (sr > dr) { dh = th; dw = th * sr; } else { dw = tw; dh = tw / sr; }
-  ctx.drawImage(srcCanvas, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  ctx.drawImage(srcCanvas, (tw - dw) / 2, 0, dw, dh);
   return out;
 }
 
