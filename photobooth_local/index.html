@@ -246,9 +246,9 @@
   <div class="section-label">Layout</div>
   <div class="pills" id="pills" role="group" aria-label="Layout options">
     <button class="pill" data-layout="auto" aria-pressed="true">Auto<span class="hint">smart pick</span></button>
-    <button class="pill" data-layout="strip" aria-pressed="false">Strip<span class="hint">vertical</span></button>
-    <button class="pill" data-layout="grid" aria-pressed="false">Grid<span class="hint">2 × 2</span></button>
-    <button class="pill" data-layout="collage" aria-pressed="false">Collage<span class="hint">3 × 2</span></button>
+    <button class="pill" data-layout="strip" aria-pressed="false">Strip<span class="hint">1–6 photos</span></button>
+    <button class="pill" data-layout="grid" aria-pressed="false">Grid<span class="hint">1–6 photos</span></button>
+    <button class="pill" data-layout="collage" aria-pressed="false">Collage<span class="hint">1–6 photos</span></button>
   </div>
 
   <div id="result" class="result" style="display:none">
@@ -548,7 +548,8 @@ function newPaper(w, h) {
   return c;
 }
 
-function composeStrip(canvases) { // 4 imgs, doubled
+function composeStrip(canvases) { // always 4 rows, doubled
+  canvases = padTo(canvases, 4);
   const cw = 600, ch = 450, border = 30, gap = 12, inter = 20;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const sw = cw + 2 * border, sh = 4 * ch + 3 * gap + 2 * border;
@@ -562,7 +563,8 @@ function composeStrip(canvases) { // 4 imgs, doubled
   return out;
 }
 
-function composeGrid(canvases) { // 4 imgs, 2x2
+function composeGrid(canvases) { // always 4 cells, 2x2
+  canvases = padTo(canvases, 4);
   const cell = 600, border = 30, gap = 12;
   const cells = canvases.map(c => coverCrop(c, cell, cell));
   const gw = 2 * cell + gap + 2 * border;
@@ -575,7 +577,8 @@ function composeGrid(canvases) { // 4 imgs, 2x2
   return grid;
 }
 
-function composeCollage(canvases) { // 6 imgs, 3x2
+function composeCollage(canvases) { // always 6 cells, 3x2
+  canvases = padTo(canvases, 6);
   const cw = 500, ch = 400, border = 30, gap = 12;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const gw = 3 * cw + 2 * gap + 2 * border, gh = 2 * ch + gap + 2 * border;
@@ -668,9 +671,6 @@ pills.addEventListener("click", (e) => {
 generate.addEventListener("click", async () => {
   const n = queue.length;
   if (n < MIN_N || n > MAX_N) return;
-  if ((currentLayout === "strip" || currentLayout === "grid") && n > 4) {
-    status.className = "status error"; status.textContent = currentLayout + " uses up to 4 photos (you have " + n + "). Try Auto or remove some."; return;
-  }
   generate.disabled = true; result.style.display = "none";
   status.className = "status"; status.innerHTML = '<span class="spinner"></span>developing your strip\u2026';
   // let the spinner paint
