@@ -341,16 +341,36 @@
 // ============================================================================
 
 const P = {
+  // ── Early-2000s mall photobooth — warm monochrome, sepia-brown undertones ──
   TARGET_SHORT_EDGE: 1000,
-  BLACK_POINT: 5.0, WHITE_POINT: 250.0, SHADOW_CRUSH: 1.45,
-  MIDTONE_LIFT: 1.02, HIGHLIGHT_ROLLOFF: 0.93,
-  SHADOW_TINT: [-1, -1, 1], HIGHLIGHT_TINT: [-2, -1, 3],
-  FLASH_INTENSITY: 0.07, FLASH_CENTER: [0.5, 0.45], FLASH_RADIUS: 0.58, FLASH_SOFTNESS: 1.9,
-  BLUR_RADIUS: 0.5,
-  GRAIN_INTENSITY: 21.0,
-  SCAN_INTENSITY: 4.5, DUST_DENSITY: 0.00015, SCRATCH_COUNT: 4,
-  VIGNETTE_STRENGTH: 0.65, VIGNETTE_RADIUS: 0.60, VIGNETTE_SOFTNESS: 1.6,
-  PAPER: [14, 12, 11],
+
+  // Faded charcoal blacks + creamy lifted whites (not pure B&W)
+  BLACK_POINT: 30.0, WHITE_POINT: 236.0, SHADOW_CRUSH: 1.03,
+  MIDTONE_LIFT: 1.08, HIGHLIGHT_ROLLOFF: 0.87,
+
+  // Warm sepia-brown: shadows → muted warm brown, highlights → creamy ivory
+  SHADOW_TINT: [10, 5, -10], HIGHLIGHT_TINT: [5, 2, -22],
+
+  // Gentle direct flash — soft centre hotspot, wide and diffused
+  FLASH_INTENSITY: 0.20, FLASH_CENTER: [0.5, 0.40], FLASH_RADIUS: 0.75, FLASH_SOFTNESS: 2.4,
+
+  // Slight motion softness — 35mm lens micro-blur
+  BLUR_RADIUS: 0.9,
+
+  // Soft analog film grain, skin-texture-safe
+  GRAIN_INTENSITY: 16.0,
+
+  // Very subtle scan banding, minimal dust, rare scratches
+  SCAN_INTENSITY: 2.0, DUST_DENSITY: 0.00008, SCRATCH_COUNT: 2,
+
+  // Wide soft vignette — cosy retro lighting, not dark
+  VIGNETTE_STRENGTH: 0.30, VIGNETTE_RADIUS: 0.80, VIGNETTE_SOFTNESS: 3.0,
+
+  // Warm cream/ivory paper border (classic photobooth strip)
+  PAPER: [244, 235, 215],
+
+  // Charcoal divider colour drawn between frames
+  DIVIDER: [28, 22, 18],
 };
 
 const clamp = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
@@ -457,7 +477,7 @@ function drawTexture(ctx, w, h) {
   }
   // scratches: probabilistic count (binomial(3, 0.45))
   let count = 0;
-  for (let k = 0; k < P.SCRATCH_COUNT; k++) if (Math.random() < 0.50) count++;
+  for (let k = 0; k < P.SCRATCH_COUNT; k++) if (Math.random() < 0.30) count++;
   for (let s = 0; s < count; s++) {
     const x = Math.random() * w;
     const yStart = Math.random() * (h / 2);
@@ -548,28 +568,41 @@ function newPaper(w, h) {
   return c;
 }
 
-function composeStrip(canvases) { // always 4 rows, doubled
+const DIV = `rgb(${P.DIVIDER[0]},${P.DIVIDER[1]},${P.DIVIDER[2]})`;
+
+function composeStrip(canvases) { // 4 rows, doubled side-by-side
   canvases = padTo(canvases, 4);
-  const cw = 600, ch = 450, border = 30, gap = 12, inter = 20;
+  const cw = 600, ch = 450, border = 32, gap = 4, inter = 5;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const sw = cw + 2 * border, sh = 4 * ch + 3 * gap + 2 * border;
   const strip = newPaper(sw, sh);
   const sctx = strip.getContext("2d");
+  // thin dark dividers between rows
+  sctx.fillStyle = DIV;
+  for (let i = 0; i < 3; i++) sctx.fillRect(border, border + (i + 1) * ch + i * gap, cw, gap);
   let y = border;
   for (const cell of cells) { sctx.drawImage(cell, border, y); y += ch + gap; }
+  // doubled strip
   const out = newPaper(2 * sw + inter, sh);
   const octx = out.getContext("2d");
-  octx.drawImage(strip, 0, 0); octx.drawImage(strip, sw + inter, 0);
+  octx.fillStyle = DIV;
+  octx.fillRect(sw, 0, inter, sh); // dark centre divider
+  octx.drawImage(strip, 0, 0);
+  octx.drawImage(strip, sw + inter, 0);
   return out;
 }
 
-function composeGrid(canvases) { // always 4 cells, 2x2
+function composeGrid(canvases) { // 4 cells, 2×2
   canvases = padTo(canvases, 4);
-  const cell = 600, border = 30, gap = 12;
+  const cell = 600, border = 32, gap = 4;
   const cells = canvases.map(c => coverCrop(c, cell, cell));
   const gw = 2 * cell + gap + 2 * border;
   const grid = newPaper(gw, gw);
   const ctx = grid.getContext("2d");
+  // thin dark cross dividers
+  ctx.fillStyle = DIV;
+  ctx.fillRect(border + cell, 0, gap, gw);  // vertical
+  ctx.fillRect(0, border + cell, gw, gap);  // horizontal
   cells.forEach((c, i) => {
     const row = Math.floor(i / 2), col = i % 2;
     ctx.drawImage(c, border + col * (cell + gap), border + row * (cell + gap));
@@ -577,13 +610,18 @@ function composeGrid(canvases) { // always 4 cells, 2x2
   return grid;
 }
 
-function composeCollage(canvases) { // always 6 cells, 3x2
+function composeCollage(canvases) { // 6 cells, 3×2
   canvases = padTo(canvases, 6);
-  const cw = 500, ch = 400, border = 30, gap = 12;
+  const cw = 500, ch = 400, border = 32, gap = 4;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const gw = 3 * cw + 2 * gap + 2 * border, gh = 2 * ch + gap + 2 * border;
   const grid = newPaper(gw, gh);
   const ctx = grid.getContext("2d");
+  // thin dark grid dividers
+  ctx.fillStyle = DIV;
+  ctx.fillRect(border + cw, 0, gap, gh);               // col 1
+  ctx.fillRect(border + 2 * cw + gap, 0, gap, gh);     // col 2
+  ctx.fillRect(0, border + ch, gw, gap);               // row divider
   cells.forEach((c, i) => {
     const row = Math.floor(i / 3), col = i % 3;
     ctx.drawImage(c, border + col * (cw + gap), border + row * (ch + gap));
