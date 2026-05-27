@@ -342,7 +342,7 @@
 
 const P = {
   // ── 1990s editorial B&W — silver gelatin print, high contrast, direct flash ──
-  TARGET_SHORT_EDGE: 1000,
+  TARGET_SHORT_EDGE: 1500,
 
   // Deep cinematic blacks + punchy bright whites (silver gelatin print)
   BLACK_POINT: 7.0, WHITE_POINT: 244.0, SHADOW_CRUSH: 1.38,
@@ -570,23 +570,32 @@ function newPaper(w, h) {
 
 const DIV = `rgb(${P.DIVIDER[0]},${P.DIVIDER[1]},${P.DIVIDER[2]})`;
 
+function cellFrame(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(20,18,18,0.20)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.restore();
+}
+
 function composeStrip(canvases) { // 4 rows, doubled side-by-side
   canvases = padTo(canvases, 4);
-  const cw = 600, ch = 450, border = 32, gap = 4, inter = 5;
+  // 1.5× scale, wide white gap between photos, print-ready ~2000×2840 px
+  const cw = 900, ch = 675, border = 48, gap = 14, inter = 14;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const sw = cw + 2 * border, sh = 4 * ch + 3 * gap + 2 * border;
   const strip = newPaper(sw, sh);
   const sctx = strip.getContext("2d");
-  // thin dark dividers between rows
-  sctx.fillStyle = DIV;
-  for (let i = 0; i < 3; i++) sctx.fillRect(border, border + (i + 1) * ch + i * gap, cw, gap);
+  // paper gap shows through naturally — no dark fill, just draw cells
   let y = border;
-  for (const cell of cells) { sctx.drawImage(cell, border, y); y += ch + gap; }
-  // doubled strip
+  for (const cell of cells) {
+    sctx.drawImage(cell, border, y);
+    cellFrame(sctx, border, y, cw, ch);
+    y += ch + gap;
+  }
+  // doubled strip — white centre gap
   const out = newPaper(2 * sw + inter, sh);
   const octx = out.getContext("2d");
-  octx.fillStyle = DIV;
-  octx.fillRect(sw, 0, inter, sh); // dark centre divider
   octx.drawImage(strip, 0, 0);
   octx.drawImage(strip, sw + inter, 0);
   return out;
@@ -594,37 +603,34 @@ function composeStrip(canvases) { // 4 rows, doubled side-by-side
 
 function composeGrid(canvases) { // 4 cells, 2×2
   canvases = padTo(canvases, 4);
-  const cell = 600, border = 32, gap = 4;
+  const cell = 900, border = 48, gap = 14;
   const cells = canvases.map(c => coverCrop(c, cell, cell));
   const gw = 2 * cell + gap + 2 * border;
   const grid = newPaper(gw, gw);
   const ctx = grid.getContext("2d");
-  // thin dark cross dividers
-  ctx.fillStyle = DIV;
-  ctx.fillRect(border + cell, 0, gap, gw);  // vertical
-  ctx.fillRect(0, border + cell, gw, gap);  // horizontal
+  // paper shows through the gap — no dark fill needed
   cells.forEach((c, i) => {
     const row = Math.floor(i / 2), col = i % 2;
-    ctx.drawImage(c, border + col * (cell + gap), border + row * (cell + gap));
+    const x = border + col * (cell + gap), y = border + row * (cell + gap);
+    ctx.drawImage(c, x, y);
+    cellFrame(ctx, x, y, cell, cell);
   });
   return grid;
 }
 
 function composeCollage(canvases) { // 6 cells, 3×2
   canvases = padTo(canvases, 6);
-  const cw = 500, ch = 400, border = 32, gap = 4;
+  const cw = 750, ch = 600, border = 48, gap = 14;
   const cells = canvases.map(c => coverCrop(c, cw, ch));
   const gw = 3 * cw + 2 * gap + 2 * border, gh = 2 * ch + gap + 2 * border;
   const grid = newPaper(gw, gh);
   const ctx = grid.getContext("2d");
-  // thin dark grid dividers
-  ctx.fillStyle = DIV;
-  ctx.fillRect(border + cw, 0, gap, gh);               // col 1
-  ctx.fillRect(border + 2 * cw + gap, 0, gap, gh);     // col 2
-  ctx.fillRect(0, border + ch, gw, gap);               // row divider
+  // paper shows through the gap — no dark fill needed
   cells.forEach((c, i) => {
     const row = Math.floor(i / 3), col = i % 3;
-    ctx.drawImage(c, border + col * (cw + gap), border + row * (ch + gap));
+    const x = border + col * (cw + gap), y = border + row * (ch + gap);
+    ctx.drawImage(c, x, y);
+    cellFrame(ctx, x, y, cw, ch);
   });
   return grid;
 }
@@ -642,7 +648,7 @@ function composeAuto(canvases) {
 }
 
 function canvasToBlob(canvas) {
-  return new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.92));
+  return new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.95));
 }
 
 // ============================================================================
