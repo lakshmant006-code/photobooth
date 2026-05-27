@@ -246,7 +246,7 @@
   <div class="section-label">Layout</div>
   <div class="pills" id="pills" role="group" aria-label="Layout options">
     <button class="pill" data-layout="auto" aria-pressed="true">Auto<span class="hint">smart pick</span></button>
-    <button class="pill" data-layout="strip" aria-pressed="false">Strip<span class="hint">1–6 photos</span></button>
+    <button class="pill" data-layout="strip" aria-pressed="false">Strip<span class="hint">4 photos</span></button>
     <button class="pill" data-layout="grid" aria-pressed="false">Grid<span class="hint">1–6 photos</span></button>
     <button class="pill" data-layout="collage" aria-pressed="false">Collage<span class="hint">1–6 photos</span></button>
   </div>
@@ -559,6 +559,20 @@ function coverCrop(srcCanvas, tw, th) {
   return out;
 }
 
+// Fit full image inside cell — no cropping, paper fills letterbox bars
+function containFit(srcCanvas, tw, th) {
+  const out = document.createElement("canvas");
+  out.width = tw; out.height = th;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = `rgb(${P.PAPER[0]},${P.PAPER[1]},${P.PAPER[2]})`;
+  ctx.fillRect(0, 0, tw, th);
+  const sr = srcCanvas.width / srcCanvas.height, dr = tw / th;
+  let dw, dh;
+  if (sr > dr) { dw = tw; dh = tw / sr; } else { dh = th; dw = th * sr; }
+  ctx.drawImage(srcCanvas, (tw - dw) / 2, (th - dh) / 2, dw, dh);
+  return out;
+}
+
 function newPaper(w, h) {
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
@@ -578,15 +592,15 @@ function cellFrame(ctx, x, y, w, h) {
   ctx.restore();
 }
 
-function composeStrip(canvases) { // 4 rows, doubled side-by-side
-  canvases = padTo(canvases, 4);
-  // 1.5× scale, wide white gap between photos, print-ready ~2000×2840 px
-  const cw = 900, ch = 675, border = 48, gap = 14, inter = 14;
-  const cells = canvases.map(c => coverCrop(c, cw, ch));
+function composeStrip(canvases) { // exactly 4 rows, doubled side-by-side
+  // Cap at 4 photos, pad up if fewer
+  canvases = padTo(canvases.slice(0, 4), 4);
+  // Square cells so every photo fits in full — no cropping regardless of orientation
+  const cw = 750, ch = 750, border = 48, gap = 16, inter = 16;
+  const cells = canvases.map(c => containFit(c, cw, ch)); // full image, no crop
   const sw = cw + 2 * border, sh = 4 * ch + 3 * gap + 2 * border;
   const strip = newPaper(sw, sh);
   const sctx = strip.getContext("2d");
-  // paper gap shows through naturally — no dark fill, just draw cells
   let y = border;
   for (const cell of cells) {
     sctx.drawImage(cell, border, y);
