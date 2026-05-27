@@ -341,36 +341,36 @@
 // ============================================================================
 
 const P = {
-  // ── Early-2000s mall photobooth — warm monochrome, sepia-brown undertones ──
+  // ── 1990s editorial B&W — silver gelatin print, high contrast, direct flash ──
   TARGET_SHORT_EDGE: 1000,
 
-  // Faded charcoal blacks + creamy lifted whites (not pure B&W)
-  BLACK_POINT: 30.0, WHITE_POINT: 236.0, SHADOW_CRUSH: 1.03,
-  MIDTONE_LIFT: 1.08, HIGHLIGHT_ROLLOFF: 0.87,
+  // Deep cinematic blacks + punchy bright whites (silver gelatin print)
+  BLACK_POINT: 7.0, WHITE_POINT: 244.0, SHADOW_CRUSH: 1.38,
+  MIDTONE_LIFT: 1.03, HIGHLIGHT_ROLLOFF: 0.91,
 
-  // Warm sepia-brown: shadows → muted warm brown, highlights → creamy ivory
-  SHADOW_TINT: [10, 5, -10], HIGHLIGHT_TINT: [5, 2, -22],
+  // True B&W — barely-there neutral-cool tint (silver gelatin is not warm)
+  SHADOW_TINT: [0, -1, 1], HIGHLIGHT_TINT: [-1, -1, 2],
 
-  // Gentle direct flash — soft centre hotspot, wide and diffused
-  FLASH_INTENSITY: 0.20, FLASH_CENTER: [0.5, 0.40], FLASH_RADIUS: 0.75, FLASH_SOFTNESS: 2.4,
+  // Strong direct photobooth flash — tight bright hotspot, slightly above centre
+  FLASH_INTENSITY: 0.23, FLASH_CENTER: [0.5, 0.38], FLASH_RADIUS: 0.56, FLASH_SOFTNESS: 1.8,
 
-  // Slight motion softness — 35mm lens micro-blur
-  BLUR_RADIUS: 0.9,
+  // Soft lens blur — slight motion softness, 35mm feel
+  BLUR_RADIUS: 1.0,
 
-  // Soft analog film grain, skin-texture-safe
-  GRAIN_INTENSITY: 16.0,
+  // Visible authentic analog grain — editorial, not clean
+  GRAIN_INTENSITY: 22.0,
 
-  // Very subtle scan banding, minimal dust, rare scratches
-  SCAN_INTENSITY: 2.0, DUST_DENSITY: 0.00008, SCRATCH_COUNT: 2,
+  // Film texture banding + dust + occasional scratch
+  SCAN_INTENSITY: 3.2, DUST_DENSITY: 0.00012, SCRATCH_COUNT: 3,
 
-  // Wide soft vignette — cosy retro lighting, not dark
-  VIGNETTE_STRENGTH: 0.30, VIGNETTE_RADIUS: 0.80, VIGNETTE_SOFTNESS: 3.0,
+  // Cinematic vignette — frames the subject, not too heavy
+  VIGNETTE_STRENGTH: 0.46, VIGNETTE_RADIUS: 0.68, VIGNETTE_SOFTNESS: 2.2,
 
-  // Warm cream/ivory paper border (classic photobooth strip)
-  PAPER: [244, 235, 215],
+  // Near-white paper border (editorial/fashion photobooth)
+  PAPER: [250, 247, 244],
 
-  // Charcoal divider colour drawn between frames
-  DIVIDER: [28, 22, 18],
+  // Near-black thin frame dividers between cells
+  DIVIDER: [12, 10, 10],
 };
 
 const clamp = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
