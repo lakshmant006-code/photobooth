@@ -341,36 +341,34 @@
 // ============================================================================
 
 const P = {
-  // ── 1990s editorial B&W — silver gelatin print, high contrast, direct flash ──
+  // ── 1970s analog photobooth — sepia-toned, faded, distressed ──
   TARGET_SHORT_EDGE: 1500,
 
-  // Deep cinematic blacks + punchy bright whites (silver gelatin print)
-  BLACK_POINT: 7.0, WHITE_POINT: 244.0, SHADOW_CRUSH: 1.38,
-  MIDTONE_LIFT: 1.03, HIGHLIGHT_ROLLOFF: 0.91,
+  // Faded vintage: lifted blacks (no pure black), compressed highlights
+  BLACK_POINT: -15.0, WHITE_POINT: 218.0, SHADOW_CRUSH: 0.72,
+  MIDTONE_LIFT: 1.06, HIGHLIGHT_ROLLOFF: 0.68,
 
-  // True B&W — barely-there neutral-cool tint (silver gelatin is not warm)
-  SHADOW_TINT: [0, -1, 1], HIGHLIGHT_TINT: [-1, -1, 2],
+  // Sepia warm toning: amber/brown shadows, warm cream highlights, no blue
+  SHADOW_TINT: [22, -10, -14], HIGHLIGHT_TINT: [14, -52, -130],
 
-  // Strong direct photobooth flash — tight bright hotspot, slightly above centre
-  FLASH_INTENSITY: 0.23, FLASH_CENTER: [0.5, 0.38], FLASH_RADIUS: 0.56, FLASH_SOFTNESS: 1.8,
+  // 1970s photobooth flash — diffused, warm, centred
+  FLASH_INTENSITY: 0.18, FLASH_CENTER: [0.5, 0.45], FLASH_RADIUS: 0.74, FLASH_SOFTNESS: 1.4,
 
-  // Soft lens blur — slight motion softness, 35mm feel
-  BLUR_RADIUS: 1.0,
+  // Softer 1970s lens
+  BLUR_RADIUS: 1.5,
 
-  // Visible authentic analog grain — editorial, not clean
-  GRAIN_INTENSITY: 22.0,
+  // Coarse authentic 1970s film grain
+  GRAIN_INTENSITY: 32.0,
 
-  // Film texture banding + dust + occasional scratch
-  SCAN_INTENSITY: 3.2, DUST_DENSITY: 0.00012, SCRATCH_COUNT: 3,
+  // Heavy scan banding + dust + prominent vertical scratches
+  SCAN_INTENSITY: 5.0, DUST_DENSITY: 0.00022, SCRATCH_COUNT: 6,
 
-  // Cinematic vignette — frames the subject, not too heavy
-  VIGNETTE_STRENGTH: 0.46, VIGNETTE_RADIUS: 0.68, VIGNETTE_SOFTNESS: 2.2,
+  // Aged darkened border — heavy vignette
+  VIGNETTE_STRENGTH: 0.70, VIGNETTE_RADIUS: 0.52, VIGNETTE_SOFTNESS: 1.8,
 
-  // Near-white paper border (editorial/fashion photobooth)
-  PAPER: [250, 247, 244],
-
-  // Near-black thin frame dividers between cells
-  DIVIDER: [12, 10, 10],
+  // Warm sepia cream paper
+  PAPER: [248, 238, 216],
+  DIVIDER: [248, 238, 216],
 };
 
 const clamp = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
@@ -463,7 +461,7 @@ function passGrainScanVignette(data, w, h) {
   }
 }
 
-// Stage 6 (dust + scratches) as canvas overlay drawing (lighter blend)
+// Stage 6 (dust + scratches + light leak) as canvas overlay
 function drawTexture(ctx, w, h) {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -471,22 +469,34 @@ function drawTexture(ctx, w, h) {
   const n = Math.round(w * h * P.DUST_DENSITY);
   for (let i = 0; i < n; i++) {
     const x = Math.random() * w, y = Math.random() * h;
-    const bright = 40 + Math.random() * 80;
+    const bright = 35 + Math.random() * 70;
     ctx.fillStyle = `rgb(${bright|0},${bright|0},${bright|0})`;
     ctx.fillRect(x, y, 1, 1);
   }
-  // scratches: probabilistic count (binomial(3, 0.45))
+  // vertical scratches — run full height, probabilistic visibility
   let count = 0;
-  for (let k = 0; k < P.SCRATCH_COUNT; k++) if (Math.random() < 0.30) count++;
+  for (let k = 0; k < P.SCRATCH_COUNT; k++) if (Math.random() < 0.55) count++;
   for (let s = 0; s < count; s++) {
     const x = Math.random() * w;
-    const yStart = Math.random() * (h / 2);
-    const yEnd = h / 2 + Math.random() * (h / 2);
-    const base = 25 + Math.random() * 40;
-    ctx.strokeStyle = `rgba(${base|0},${base|0},${base|0},0.5)`;
-    ctx.lineWidth = 1;
+    const yStart = Math.random() * h * 0.12;            // start near top
+    const yEnd   = h * 0.85 + Math.random() * h * 0.15; // end near bottom
+    const base = 30 + Math.random() * 55;
+    ctx.strokeStyle = `rgba(${base|0},${base|0},${base|0},0.65)`;
+    ctx.lineWidth = 0.8 + Math.random() * 0.6;
     ctx.beginPath(); ctx.moveTo(x, yStart); ctx.lineTo(x, yEnd); ctx.stroke();
   }
+  ctx.restore();
+
+  // Light leak at bottom — warm amber/orange bleed (1970s film)
+  const leak = ctx.createLinearGradient(0, h * 0.52, 0, h);
+  leak.addColorStop(0,    'rgba(255, 160,  40, 0)');
+  leak.addColorStop(0.55, 'rgba(255, 130,  10, 0.10)');
+  leak.addColorStop(0.85, 'rgba(255, 100,   0, 0.22)');
+  leak.addColorStop(1,    'rgba(240,  70,   0, 0.32)');
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillStyle = leak;
+  ctx.fillRect(0, 0, w, h);
   ctx.restore();
 }
 
